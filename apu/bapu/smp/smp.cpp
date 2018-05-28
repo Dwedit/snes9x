@@ -152,6 +152,7 @@ SMP::SMP() {
 }
 
 SMP::~SMP() {
+  delete [] apuram;
 }
 
 }
