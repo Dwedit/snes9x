@@ -803,10 +803,6 @@ PHASE(31)  V(V4,0)       V(V1,2)\
 
 void SPC_DSP::run( int clocks_remain )
 {
-	if (::Settings.HardDisableAudio)
-	{
-		return;
-	}
 	require( clocks_remain > 0 );
 
 	int const phase = m.phase;
@@ -1072,15 +1068,4 @@ SPC_DSP::uint8_t SPC_DSP::reg_value( int ch, int addr )
 int SPC_DSP::envx_value( int ch )
 {
 	return m.voices[ch].env;
-}
-
-bool SPC_DSP::EnqueueSamples(const sample_t *samples, int sampleCount)
-{
-	//used to restore samples back to the output buffer when loading state
-	if (m.out_begin == NULL) return false;
-	int samplesRemaining = m.out_end - m.out;
-	if (sampleCount > samplesRemaining) return false;
-	memcpy(m.out, samples, sampleCount * sizeof(sample_t));
-	m.out += sampleCount;
-	return true;
 }

@@ -549,7 +549,9 @@ size_t memStream::size (void)
 
 int memStream::revert (size_t from, size_t offset)
 {
-    size_t pos = from + offset;
+	size_t pos = from;
+	if (offset == SEEK_CUR) pos = (head - mem) + from;
+	if (offset == SEEK_END) pos = msize + from;
 
     if(pos > msize)
         return -1;

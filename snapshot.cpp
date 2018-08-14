@@ -189,8 +189,6 @@
   Nintendo Co., Limited and its subsidiary companies.
  ***********************************************************************************/
 
-#define SAVE_SCREENSHOT 0
-
 #include <assert.h>
 #include "snes9x.h"
 #include "memmap.h"
@@ -1157,7 +1155,6 @@ static FreezeData	SnapMSU1[] =
 
 #undef STRUCT
 
-#if SAVE_SCREENSHOT
 #define STRUCT	struct SnapshotScreenshotInfo
 
 static FreezeData	SnapScreenshot[] =
@@ -1169,7 +1166,6 @@ static FreezeData	SnapScreenshot[] =
 };
 
 #undef STRUCT
-#endif
 
 #define STRUCT	struct SnapshotMovieInfo
 
@@ -1186,7 +1182,7 @@ static void UnfreezeStructFromCopy (void *, FreezeData *, int, uint8 *, int);
 static void FreezeBlock (STREAM, const char *, uint8 *, int);
 static void FreezeStruct (STREAM, const char *, void *, FreezeData *, int);
 static bool CheckBlockName(STREAM stream, const char *name, int &len);
-static void SkipBlockWithName(STREAM stream, const char *name);
+static bool SkipBlock(STREAM stream, const char *name);
 
 
 void S9xResetSaveTimer (bool8 dontsave)
@@ -1410,12 +1406,43 @@ void S9xFreezeToStream (STREAM stream)
 		FreezeStruct(stream, "MSU", &MSU1, SnapMSU1, COUNT(SnapMSU1));
 	}
 
+	if (Settings.SnapshotScreenshots)
+	{
+		SnapshotScreenshotInfo	*ssi = new SnapshotScreenshotInfo;
+
+		ssi->Width  = min(IPPU.RenderedScreenWidth,  MAX_SNES_WIDTH);
+		ssi->Height = min(IPPU.RenderedScreenHeight, MAX_SNES_HEIGHT);
+		ssi->Interlaced = GFX.DoInterlace;
+
+		uint8	*rowpix = ssi->Data;
+		uint16	*screen = GFX.Screen;
+
+		for (int y = 0; y < ssi->Height; y++, screen += GFX.RealPPL)
+		{
+			for (int x = 0; x < ssi->Width; x++)
+			{
+				uint32	r, g, b;
+
+				DECOMPOSE_PIXEL(screen[x], r, g, b);
+				*(rowpix++) = r;
+				*(rowpix++) = g;
+				*(rowpix++) = b;
+			}
+		}
+
+		memset(rowpix, 0, sizeof(ssi->Data) + ssi->Data - rowpix);
+
+		FreezeStruct(stream, "SHO", ssi, SnapScreenshot, COUNT(SnapScreenshot));
+
+		delete ssi;
+	}
 	delete [] soundsnapshot;
 }
 
 int S9xUnfreezeFromStream (STREAM stream)
 {
-	const bool8 fast = Settings.FastSavestates;
+	const bool8 inPlace = Settings.LoadStateInPlace;
+	//const bool8 fast = Settings.FastSavestates;
 
 	int		result = SUCCESS;
 	int		version, len;
@@ -1465,6 +1492,15 @@ int S9xUnfreezeFromStream (STREAM stream)
 	uint8	*local_screenshot    = NULL;
 	uint8	*local_movie_data    = NULL;
 
+	size_t vram_pos = 0;
+	size_t ram_pos = 0;
+	size_t fillram_pos = 0;
+	size_t sram_pos = 0;
+	size_t cx4_pos = 0;
+	size_t obm_pos = 0;
+
+	int blockLengthDummy = 0;
+
 	do
 	{
 		result = UnfreezeStructCopy(stream, "CPU", &local_cpu, SnapCPU, COUNT(SnapCPU), version);
@@ -1483,31 +1519,23 @@ int S9xUnfreezeFromStream (STREAM stream)
 		if (result != SUCCESS)
 			break;
 
-		if (fast)
-			result = UnfreezeBlock(stream, "VRA", Memory.VRAM, 0x10000);
-		else
-			result = UnfreezeBlockCopy(stream, "VRA", &local_vram, 0x10000);
+		vram_pos = FIND_STREAM(stream);
+		result = SkipBlock(stream, "VRA");
 		if (result != SUCCESS)
 			break;
 
-		if (fast)
-			result = UnfreezeBlock(stream, "RAM", Memory.RAM, 0x20000);
-		else
-			result = UnfreezeBlockCopy(stream, "RAM", &local_ram, 0x20000);
+		ram_pos = FIND_STREAM(stream);
+		result = SkipBlock(stream, "RAM");
 		if (result != SUCCESS)
 			break;
 
-		if (fast)
-			result = UnfreezeBlock(stream, "SRA", Memory.SRAM, 0x20000);
-		else
-			result = UnfreezeBlockCopy (stream, "SRA", &local_sram, 0x20000);
+		sram_pos = FIND_STREAM(stream);
+		result = SkipBlock(stream, "SRAM");
 		if (result != SUCCESS)
 			break;
 
-		if (fast)
-			result = UnfreezeBlock(stream, "FIL", Memory.FillRAM, 0x8000);
-		else
-			result = UnfreezeBlockCopy(stream, "FIL", &local_fillram, 0x8000);
+		fillram_pos = FIND_STREAM(stream);
+		result = SkipBlock(stream, "FIL");
 		if (result != SUCCESS)
 			break;
 
@@ -1549,7 +1577,7 @@ int S9xUnfreezeFromStream (STREAM stream)
 
 		if (Settings.C4)
 		{
-			if (fast)
+			if (inPlace)
 				result = UnfreezeBlock(stream, "CX4", Memory.C4RAM, 8192);
 			else
 				result = UnfreezeBlockCopy(stream, "CX4", &local_cx4_data, 8192);
@@ -1571,7 +1599,7 @@ int S9xUnfreezeFromStream (STREAM stream)
 
 		if (Settings.OBC1)
 		{
-			if (fast)
+			if (inPlace)
 				result = UnfreezeBlock(stream, "OBM", Memory.OBC1RAM, 8192);
 			else
 				result = UnfreezeBlockCopy(stream, "OBM", &local_obc1_data, 8192);
@@ -1603,11 +1631,7 @@ int S9xUnfreezeFromStream (STREAM stream)
 		if (result != SUCCESS && Settings.MSU1)
 			break;
 
-#if SAVE_SCREENSHOT
 		result = UnfreezeStructCopy(stream, "SHO", &local_screenshot, SnapScreenshot, COUNT(SnapScreenshot), version);
-#else
-		SkipBlockWithName(stream, "SHO");
-#endif
 
 		SnapshotMovieInfo	mi;
 
@@ -1623,7 +1647,7 @@ int S9xUnfreezeFromStream (STREAM stream)
 		uint32 old_flags     = CPU.Flags;
 		uint32 sa1_old_flags = SA1.Flags;
 
-		if (fast)
+		if (inPlace)
 		{
 			S9xResetPPUFast();
 		}
@@ -1800,7 +1824,6 @@ int S9xUnfreezeFromStream (STREAM stream)
 		if (local_msu1_data)
 			S9xMSU1PostLoadState();
 
-#if SAVE_SCREENSHOT
 		if (local_screenshot)
 		{
 			SnapshotScreenshotInfo	*ssi = new SnapshotScreenshotInfo;
@@ -1855,11 +1878,13 @@ int S9xUnfreezeFromStream (STREAM stream)
 		}
 		else
 		{
-			// couldn't load graphics, so black out the screen instead
-			for (uint32 y = 0; y < (uint32) (IMAGE_HEIGHT); y++)
-				memset(GFX.Screen + y * GFX.RealPPL, 0, GFX.RealPPL * 2);
+			if (!Settings.LoadStateDoNotClearScreen)
+			{
+				// couldn't load graphics, so black out the screen instead
+				for (uint32 y = 0; y < (uint32)(IMAGE_HEIGHT); y++)
+					memset(GFX.Screen + y * GFX.RealPPL, 0, GFX.RealPPL * 2);
+			}
 		}
-#endif
 	}
 
 	if (local_cpu)				delete [] local_cpu;
@@ -2087,7 +2112,7 @@ static bool CheckBlockName(STREAM stream, const char *name, int &len)
 	return true;
 }
 
-static void SkipBlockWithName(STREAM stream, const char *name)
+static int SkipBlock(STREAM stream, const char *name)
 {
 	int len;
 	bool matchesName = CheckBlockName(stream, name, len);
@@ -2096,7 +2121,9 @@ static void SkipBlockWithName(STREAM stream, const char *name)
 		long rewind = FIND_STREAM(stream);
 		rewind += len + 11;
 		REVERT_STREAM(stream, rewind, 0);
+		return (SUCCESS);
 	}
+	return (WRONG_FORMAT);
 }
 
 static int UnfreezeBlock (STREAM stream, const char *name, uint8 *block, int size)

@@ -466,8 +466,12 @@ struct SSettings
 	bool8	OpenGLEnable;
 	uint32	SuperFXClockMultiplier;
 
-	bool8	FastSavestates;
-	bool8	HardDisableAudio;
+//	bool8	FastSavestates;
+	bool8	LoadStateDoNotClearScreen;
+	bool8	LoadStateInPlace;
+	bool8	LoadStateDisableBufferClear;
+	bool8	LoadStateFastReset;
+	bool8	SnapshotScreenshots;
 };
 
 struct SSNESGameFixes
