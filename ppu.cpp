@@ -1949,6 +1949,7 @@ void S9xResetPPUFast (void)
 	memset(IPPU.TileCached[TILE_2BIT_ODD], 0, MAX_2BIT_TILES);
 	memset(IPPU.TileCached[TILE_4BIT_EVEN], 0, MAX_4BIT_TILES);
 	memset(IPPU.TileCached[TILE_4BIT_ODD], 0, MAX_4BIT_TILES);
+	S9xBuildDirectColourMaps();
 }
 
 void S9xSoftResetPPU (void)
@@ -2119,14 +2120,17 @@ void S9xSoftResetPPU (void)
 	S9xFixColourBrightness();
 	S9xBuildDirectColourMaps();
 
-	for (int c = 0; c < 0x8000; c += 0x100)
-		memset(&Memory.FillRAM[c], c >> 8, 0x100);
-	memset(&Memory.FillRAM[0x2100], 0, 0x100);
-	memset(&Memory.FillRAM[0x4200], 0, 0x100);
-	memset(&Memory.FillRAM[0x4000], 0, 0x100);
-	// For BS Suttehakkun 2...
-	memset(&Memory.FillRAM[0x1000], 0, 0x1000);
+	if (!Settings.LoadStateDisableBufferClear)
+	{
+		for (int c = 0; c < 0x8000; c += 0x100)
+			memset(&Memory.FillRAM[c], c >> 8, 0x100);
+		memset(&Memory.FillRAM[0x2100], 0, 0x100);
+		memset(&Memory.FillRAM[0x4200], 0, 0x100);
+		memset(&Memory.FillRAM[0x4000], 0, 0x100);
+		// For BS Suttehakkun 2...
+		memset(&Memory.FillRAM[0x1000], 0, 0x1000);
 
-	Memory.FillRAM[0x4201] = Memory.FillRAM[0x4213] = 0xff;
-	Memory.FillRAM[0x2126] = Memory.FillRAM[0x2128] = 1;
+		Memory.FillRAM[0x4201] = Memory.FillRAM[0x4213] = 0xff;
+		Memory.FillRAM[0x2126] = Memory.FillRAM[0x2128] = 1;
+	}
 }

@@ -287,16 +287,19 @@ void S9xReset (void)
 	S9xResetSaveTimer(FALSE);
 	S9xResetLogger();
 
-	memset(Memory.RAM, 0x55, 0x20000);
-	memset(Memory.VRAM, 0x00, 0x10000);
-	memset(Memory.FillRAM, 0, 0x8000);
+	if (!Settings.LoadStateDisableBufferClear)
+	{
+		memset(Memory.RAM, 0x55, 0x20000);
+		memset(Memory.VRAM, 0x00, 0x10000);
+		memset(Memory.FillRAM, 0, 0x8000);
+	}
 
 	S9xResetBSX();
 	S9xResetCPU();
 	S9xResetPPU();
 	S9xResetDMA();
 	S9xResetAPU();
-    S9xResetMSU();
+	S9xResetMSU();
 
 	if (Settings.DSP)
 		S9xResetDSP();

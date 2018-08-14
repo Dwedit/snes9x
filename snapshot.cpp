@@ -1707,7 +1707,9 @@ int S9xUnfreezeFromStream (STREAM stream)
 		else
 		{
 			//Do not call this if you have written directly to "Memory." arrays
+			Settings.LoadStateDisableBufferClear = true;
 			S9xReset();
+			Settings.LoadStateDisableBufferClear = false;
 		}
 
 		UnfreezeStructFromCopy(&CPU, SnapCPU, COUNT(SnapCPU), local_cpu, version);
