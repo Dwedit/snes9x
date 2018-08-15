@@ -299,7 +299,10 @@ void S9xReset (void)
 	S9xResetPPU();
 	S9xResetDMA();
 	S9xResetAPU();
-	S9xResetMSU();
+	if (!Settings.LoadStateDoNotRecheckForMSU1)
+	{
+		S9xResetMSU();
+	}
 
 	if (Settings.DSP)
 		S9xResetDSP();
@@ -327,7 +330,10 @@ void S9xSoftReset (void)
 {
 	S9xResetSaveTimer(FALSE);
 
-	memset(Memory.FillRAM, 0, 0x8000);
+	if (!Settings.LoadStateDisableBufferClear)
+	{
+		memset(Memory.FillRAM, 0, 0x8000);
+	}
 
 	if (Settings.BS)
 		S9xResetBSX();
@@ -336,7 +342,10 @@ void S9xSoftReset (void)
 	S9xSoftResetPPU();
 	S9xResetDMA();
 	S9xSoftResetAPU();
-    S9xResetMSU();
+	if (!Settings.LoadStateDoNotRecheckForMSU1)
+	{
+		S9xResetMSU();
+	}
 
 	if (Settings.DSP)
 		S9xResetDSP();

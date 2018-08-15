@@ -1000,6 +1000,7 @@ void retro_init(void)
     Settings.CartBName[0] = 0;
     Settings.AutoSaveDelay = 1;
     Settings.DontSaveOopsSnapshot = TRUE;
+    Settings.LoadStateDoNotClearScreen = TRUE;
 
     CPU.Flags = 0;
 

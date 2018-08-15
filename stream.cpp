@@ -299,9 +299,9 @@ size_t fStream::size (void)
     return sz;
 }
 
-int fStream::revert (size_t from, size_t offset)
+int fStream::revert (int origin_name, long offset)
 {
-    return (REVERT_FSTREAM(fp, offset, from));
+    return (REVERT_FSTREAM(fp, offset, origin_name));
 }
 
 void fStream::closeStream()
@@ -428,9 +428,22 @@ size_t unzStream::size (void)
     return info.uncompressed_size;
 }
 
-int unzStream::revert (size_t from, size_t offset)
+int unzStream::revert (int origin_name, long offset)
 {
-    size_t target_pos = from + offset;
+	size_t target_pos;
+	if (origin_name == SEEK_CUR)
+	{
+		target_pos = this->pos() + offset;
+	}
+	else if (origin_name == SEEK_END)
+	{
+		target_pos = size() + offset;
+	}
+	else
+	{
+		target_pos = offset;
+		if (offset < 0) target_pos = 0;
+	}
 
     // new pos inside buffered data
     if (target_pos >= buf_pos_in_unzipped && target_pos < buf_pos_in_unzipped + bytes_in_buf)
@@ -547,9 +560,22 @@ size_t memStream::size (void)
     return msize;
 }
 
-int memStream::revert (size_t from, size_t offset)
+int memStream::revert (int origin_name, long offset)
 {
-    size_t pos = from + offset;
+	size_t pos;
+	if (origin_name == SEEK_CUR)
+	{
+		pos = this->pos() + offset;
+	}
+	else if (origin_name == SEEK_END)
+	{
+		pos = size() + offset;
+	}
+	else
+	{
+		pos = offset;
+		if (offset < 0) pos = 0;
+	}
 
     if(pos > msize)
         return -1;
@@ -610,9 +636,24 @@ size_t nulStream::size (void)
     return bytes_written;
 }
 
-int nulStream::revert (size_t from, size_t offset)
+int nulStream::revert (int origin_name, long offset)
 {
-    bytes_written = from + offset;
+	size_t pos;
+	if (origin_name == SEEK_CUR)
+	{
+		pos = this->pos() + offset;
+	}
+	else if (origin_name == SEEK_END)
+	{
+		pos = size() + offset;
+	}
+	else
+	{
+		pos = offset;
+		if (offset < 0) pos = 0;
+	}
+	
+	bytes_written = pos;
     return 0;
 }
 

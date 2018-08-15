@@ -211,7 +211,7 @@
 #define OPEN_FSTREAM(f, m)		gzopen(f, m)
 #define REOPEN_FSTREAM(f, m)		gzdopen(f, m)
 #define FIND_FSTREAM(f)			gztell(f)
-#define REVERT_FSTREAM(s, o, p)	gzseek(s, o, p)
+#define REVERT_FSTREAM(stream, offset, origin_name)	gzseek(stream, offset, origin_name)
 #define CLOSE_FSTREAM(s)			gzclose(s)
 #else
 #define FSTREAM					FILE *
@@ -222,7 +222,7 @@
 #define OPEN_FSTREAM(f, m)		fopen(f, m)
 #define REOPEN_FSTREAM(f, m)		fdopen(f, m)
 #define FIND_FSTREAM(s)			ftell(s)
-#define REVERT_FSTREAM(s, o, p)	fseek(s, o, p)
+#define REVERT_FSTREAM(stream, offset, origin_name)	fseek(stream, offset, origin_name)
 #define CLOSE_FSTREAM(s)			fclose(s)
 #endif
 
@@ -236,7 +236,7 @@
 #define OPEN_STREAM(f, m)		openStreamFromFSTREAM(f, m)
 #define REOPEN_STREAM(f, m)		reopenStreamFromFd(f, m)
 #define FIND_STREAM(s)			s->pos()
-#define REVERT_STREAM(s, o, p)	s->revert(p, o)
+#define REVERT_STREAM(stream, offset, origin_name)	stream->revert(origin_name, offset)
 #define CLOSE_STREAM(s)			s->closeStream()
 
 #define SNES_WIDTH					256
@@ -495,6 +495,8 @@ struct SSettings
 	int	MaxSpriteTilesPerLine;
 
 	bool	LoadStateDisableBufferClear;
+	bool	LoadStateDoNotClearScreen;
+	bool	LoadStateDoNotRecheckForMSU1;
 };
 
 struct SSNESGameFixes

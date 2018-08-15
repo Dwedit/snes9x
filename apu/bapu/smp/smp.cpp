@@ -73,7 +73,10 @@ void SMP::power() {
 }
 
 void SMP::reset() {
-  for(unsigned n = 0x0000; n <= 0xffff; n++) apuram[n] = 0x00;
+  if (!Settings.LoadStateDisableBufferClear)
+  {
+    for (unsigned n = 0x0000; n <= 0xffff; n++) apuram[n] = 0x00;
+  }
 
   opcode_number = 0;
   opcode_cycle = 0;

@@ -1949,7 +1949,6 @@ void S9xResetPPUFast (void)
 	memset(IPPU.TileCached[TILE_2BIT_ODD], 0, MAX_2BIT_TILES);
 	memset(IPPU.TileCached[TILE_4BIT_EVEN], 0, MAX_4BIT_TILES);
 	memset(IPPU.TileCached[TILE_4BIT_ODD], 0, MAX_4BIT_TILES);
-	S9xBuildDirectColourMaps();
 }
 
 void S9xSoftResetPPU (void)
@@ -2015,7 +2014,10 @@ void S9xSoftResetPPU (void)
 	PPU.OAMReadFlip = 0;
 	PPU.OAMTileAddress = 0;
 	PPU.OAMWriteRegister = 0;
-	memset(PPU.OAMData, 0, 512 + 32);
+	if (!Settings.LoadStateDisableBufferClear)
+	{
+		memset(PPU.OAMData, 0, 512 + 32);
+	}
 
 	PPU.FirstSprite = 0;
 	PPU.LastSprite = 127;
@@ -2117,11 +2119,12 @@ void S9xSoftResetPPU (void)
 	IPPU.SkippedFrames = 0;
 	IPPU.FrameSkip = 0;
 
-	S9xFixColourBrightness();
-	S9xBuildDirectColourMaps();
 
 	if (!Settings.LoadStateDisableBufferClear)
 	{
+		S9xFixColourBrightness();
+		S9xBuildDirectColourMaps();
+
 		for (int c = 0; c < 0x8000; c += 0x100)
 			memset(&Memory.FillRAM[c], c >> 8, 0x100);
 		memset(&Memory.FillRAM[0x2100], 0, 0x100);
