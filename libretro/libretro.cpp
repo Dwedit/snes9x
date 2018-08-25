@@ -48,6 +48,7 @@
 #define SNES_8_7 8.0f / 7.0f
 
 char g_rom_dir[1024];
+char g_log_dir[1024];
 char g_basename[1024];
 
 int hires_blend = 0;
@@ -1469,12 +1470,12 @@ void retro_run()
         bool audioEnabled = 0 != (result & 2);
         bool videoEnabled = 0 != (result & 1);
         IPPU.RenderThisFrame = videoEnabled;
-        S9xSetSoundMute(!audioEnabled);
+        //S9xSetSoundMute(!audioEnabled);
     }
     else
     {
         IPPU.RenderThisFrame = true;
-        S9xSetSoundMute(false);
+        //S9xSetSoundMute(false);
     }
 
     poll_cb();
@@ -1728,6 +1729,8 @@ const char* S9xGetDirectory(s9x_getdirtype type)
             return g_rom_dir;
         case BIOS_DIR:
             return retro_system_directory;
+        case LOG_DIR:
+            return g_log_dir;
         default:
             break;
     }

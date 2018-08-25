@@ -2636,4 +2636,41 @@ void S9xPrintHVPosition (char *s)
 	sprintf(s, "HC:%04ld VC:%03ld FC:%02d", (long) CPU.Cycles, (long) CPU.V_Counter, IPPU.FrameCount);
 }
 
+void S9xTextMode() { }
+void S9xGraphicsMode() { }
+
+extern char g_log_dir[1024];
+
+//temporary
+extern "C"
+{
+	__declspec(dllexport)
+	void toggle_trace()
+	{
+		S9xDebugProcessCommand("T");
+
+	}
+	__declspec(dllexport)
+	void run_frame_trace()
+	{
+		extern void retro_run();
+		S9xDebugProcessCommand("T");
+		retro_run();
+		S9xDebugProcessCommand("T");
+	}
+
+	__declspec(dllexport)
+	void set_log_dir(const char *path)
+	{
+		strcpy(g_log_dir, path);
+	}
+}
+
+
+
+
+
+
+
+
 #endif

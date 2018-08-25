@@ -340,7 +340,10 @@ void S9xMainLoop (void)
 			S9xSA1MainLoop();
 	}
 
+	//TESTING:
+	//S9xSetPCBase(Registers.PBPC);
 	S9xPackStatus();
+	//S9xUpdateIRQPositions(false);
 
 	if (CPU.Flags & SCAN_KEYS_FLAG)
 	{
