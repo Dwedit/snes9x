@@ -1913,6 +1913,8 @@ void S9xResetPPUFast (void)
 	PPU.RecomputeClipWindows = TRUE;
 	IPPU.ColorsChanged = TRUE;
 	IPPU.OBJChanged = TRUE;
+	IPPU.CurrentLine = 0;
+	IPPU.PreviousLine = 0;
 	memset(IPPU.TileCached[TILE_2BIT], 0, MAX_2BIT_TILES);
 	memset(IPPU.TileCached[TILE_4BIT], 0, MAX_4BIT_TILES);
 	memset(IPPU.TileCached[TILE_8BIT], 0, MAX_8BIT_TILES);

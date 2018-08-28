@@ -1469,13 +1469,13 @@ void retro_run()
     {
         bool audioEnabled = 0 != (result & 2);
         bool videoEnabled = 0 != (result & 1);
-        IPPU.RenderThisFrame = videoEnabled;
+        //IPPU.RenderThisFrame = videoEnabled;
         //S9xSetSoundMute(!audioEnabled);
     }
     else
     {
         IPPU.RenderThisFrame = true;
-        //S9xSetSoundMute(false);
+        S9xSetSoundMute(false);
     }
 
     poll_cb();

@@ -344,6 +344,8 @@ void S9xMainLoop (void)
 	//S9xSetPCBase(Registers.PBPC);
 	S9xPackStatus();
 	//S9xUpdateIRQPositions(false);
+	IPPU.CurrentLine = 0;
+	IPPU.PreviousLine = 0;
 
 	if (CPU.Flags & SCAN_KEYS_FLAG)
 	{

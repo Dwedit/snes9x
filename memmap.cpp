@@ -1590,13 +1590,18 @@ bool8 CMemory::LoadROMInt (int32 ROMfillSize)
 	ExtendedFormat = NOPE;
 
 	int	hi_score, lo_score;
+	int hi_score_headered, lo_score_headered;
+
+	bool size_is_likely_headered = ((ROMfillSize - 512) & 0xFFFF) == 0;
 
 	hi_score = ScoreHiROM(FALSE);
 	lo_score = ScoreLoROM(FALSE);
+	hi_score_headered = ScoreHiROM(TRUE);
+	lo_score_headered = ScoreLoROM(TRUE);
 
-	if (HeaderCount == 0 && !Settings.ForceNoHeader &&
-		((hi_score >  lo_score && ScoreHiROM(TRUE) > hi_score) ||
-		 (hi_score <= lo_score && ScoreLoROM(TRUE) > lo_score)))
+	bool headered_score_highest = max(hi_score_headered, lo_score_headered) > max(hi_score, lo_score);
+
+	if (HeaderCount == 0 && !Settings.ForceNoHeader && headered_score_highest && size_is_likely_headered)
 	{
 		memmove(ROM, ROM + 512, ROMfillSize - 512);
 		ROMfillSize -= 512;
