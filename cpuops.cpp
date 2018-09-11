@@ -3499,6 +3499,8 @@ static void OpDB (void)
 {
 	Registers.PCw--;
 	CPU.Flags |= DEBUG_MODE_FLAG | HALTED_FLAG;
+	//while (CPU.Cycles >= CPU.NextEvent)
+		S9xDoHEventProcessing();
 }
 
 /* WDM (Reserved S9xOpcode) ************************************************ */

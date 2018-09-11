@@ -2034,7 +2034,7 @@ static void FreezeStruct (STREAM stream, const char *name, void *base, FreezeDat
 		if (SNAPSHOT_VERSION >= fields[i].deleted_in || SNAPSHOT_VERSION < fields[i].debuted_in)
 			continue;
 
-		if ((((memStream*)stream)->pos() + 11 + (ptr - block)) >= 0xADC)
+		if ((((memStream*)stream)->pos() + 11 + (ptr - block)) >= 0x0006909b)
 		{
 			int dummy = 0;
 		}

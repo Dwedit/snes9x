@@ -300,7 +300,8 @@ void S9xSA1PostLoadState (void)
 	S9xSA1SetPCBase(SA1Registers.PBPC);
 	S9xSA1UnpackStatus();
 	S9xSA1FixCycles();
-	SA1.VirtualBitmapFormat = (Memory.FillRAM[0x223f] & 0x80) ? 2 : 4;
+	//???
+	//SA1.VirtualBitmapFormat = (Memory.FillRAM[0x223f] & 0x80) ? 2 : 4;
 	Memory.BWRAM = Memory.SRAM + (Memory.FillRAM[0x2224] & 7) * 0x2000;
 	S9xSA1SetBWRAMMemMap(Memory.FillRAM[0x2225]);
 	S9xSetSA1(Memory.FillRAM[0x2220], 0x2220);
@@ -600,6 +601,7 @@ void S9xSetSA1 (uint8 byte, uint32 address)
 		case 0x2221: // MMC bank D
 		case 0x2222: // MMC bank E
 		case 0x2223: // MMC bank F
+			Memory.FillRAM[address] = byte;
 			S9xSetSA1MemMap(address - 0x2220, byte);
 			break;
 

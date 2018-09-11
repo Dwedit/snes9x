@@ -2664,6 +2664,15 @@ extern "C"
 	{
 		strcpy(g_log_dir, path);
 	}
+
+	__declspec(dllexport)
+	void debug_print(const char *line)
+	{
+		S9xTraceMessage(line);
+		fflush(trace);
+		fflush(trace2);
+	}
+
 }
 
 
