@@ -29,7 +29,9 @@ uint32 S9xFreezeSize (void);
 bool8 S9xFreezeGameMem (uint8 *,uint32);
 bool8 S9xUnfreezeGame (const char *);
 int S9xUnfreezeGameMem (const uint8 *,uint32);
+int S9xCompareStateMem(const uint8 *, const uint8 *, uint32);
 void S9xFreezeToStream (STREAM);
 int	 S9xUnfreezeFromStream (STREAM);
+int S9xCompareStateStream(STREAM, STREAM);
 
 #endif

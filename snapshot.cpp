@@ -1001,6 +1001,9 @@ static void FreezeBlock (STREAM, const char *, uint8 *, int);
 static void FreezeStruct (STREAM, const char *, void *, FreezeData *, int);
 static bool CheckBlockName(STREAM stream, const char *name, int &len);
 static void SkipBlockWithName(STREAM stream, const char *name);
+static bool CompareStruct(STREAM stream1, STREAM stream2, const char *name, FreezeData *fields, int num_fields, int version);
+static bool CompareBlock(STREAM stream1, STREAM stream2, const char *name, int blockSize);
+static bool CompareMemBlock(const char *name, const uint8 *mem1, const uint8 *mem2, int size);
 
 
 void S9xResetSaveTimer (bool8 dontsave)
@@ -1066,6 +1069,15 @@ int S9xUnfreezeGameMem (const uint8 *buf, uint32 bufSize)
     memStream stream(buf, bufSize);
 	int result = S9xUnfreezeFromStream(&stream);
 
+	return result;
+}
+
+int S9xCompareStateMem(const uint8 *buf, const uint8 *buf2, uint32 bufSize)
+{
+	memStream stream1(buf, bufSize);
+	memStream stream2(buf2, bufSize);
+	int result = S9xCompareStateStream(&stream1, &stream2);
+	fflush(stderr);
 	return result;
 }
 
@@ -1801,6 +1813,57 @@ int S9xUnfreezeFromStream (STREAM stream)
 	return (result);
 }
 
+int S9xCompareStateStream(STREAM stream1, STREAM stream2)
+{
+	bool matches = true;
+	//const bool8 fast = Settings.FastSavestates;
+
+	int		result = SUCCESS;
+	int		version, len;
+	uint8	buffer1[PATH_MAX + 1];
+	uint8	buffer2[PATH_MAX + 1];
+
+	len = strlen(SNAPSHOT_MAGIC) + 1 + 4 + 1;
+	READ_STREAM(buffer1, len, stream1);
+	READ_STREAM(buffer2, len, stream2);
+	matches &= CompareMemBlock("Header", buffer1, buffer2, len);
+
+	matches &= CompareBlock(stream1, stream2, "NAM", PATH_MAX);
+
+	matches &= CompareStruct(stream1, stream2, "CPU", SnapCPU, COUNT(SnapCPU), version);
+	matches &= CompareStruct(stream1, stream2, "REG", SnapRegisters, COUNT(SnapRegisters), version);
+	matches &= CompareStruct(stream1, stream2, "PPU", SnapPPU, COUNT(SnapPPU), version);
+	matches &= CompareStruct(stream1, stream2, "DMA", SnapDMA, COUNT(SnapDMA), version);
+	matches &= CompareBlock(stream1, stream2, "VRA", 0x10000);
+	matches &= CompareBlock(stream1, stream2, "RAM", 0x20000);
+	matches &= CompareBlock(stream1, stream2, "SRA", 0x20000);
+	matches &= CompareBlock(stream1, stream2, "FIL", 0x8000);
+	matches &= CompareBlock(stream1, stream2, "SND", SPC_SAVE_STATE_BLOCK_SIZE);
+	matches &= CompareStruct(stream1, stream2, "CTL", SnapControls, COUNT(SnapControls), version);
+	matches &= CompareStruct(stream1, stream2, "TIM", SnapTimings, COUNT(SnapTimings), version);
+	matches &= CompareStruct(stream1, stream2, "SFX", SnapFX, COUNT(SnapFX), version);
+	matches &= CompareStruct(stream1, stream2, "SA1", SnapSA1, COUNT(SnapSA1), version);
+	matches &= CompareStruct(stream1, stream2, "SAR", SnapSA1Registers, COUNT(SnapSA1Registers), version);
+	matches &= CompareStruct(stream1, stream2, "DP1", SnapDSP1, COUNT(SnapDSP1), version);
+	matches &= CompareStruct(stream1, stream2, "DP2", SnapDSP2, COUNT(SnapDSP2), version);
+	matches &= CompareStruct(stream1, stream2, "DP4", SnapDSP4, COUNT(SnapDSP4), version);
+	if (Settings.C4)
+		matches &= CompareBlock(stream1, stream2, "CX4", 8192);
+	matches &= CompareStruct(stream1, stream2, "ST0", SnapST010, COUNT(SnapST010), version);
+	matches &= CompareStruct(stream1, stream2, "OBC", SnapOBC1, COUNT(SnapOBC1), version);
+	if (Settings.OBC1)
+		matches &= CompareBlock(stream1, stream2, "OBM", 8192);
+	matches &= CompareStruct(stream1, stream2, "S71", SnapSPC7110Snap, COUNT(SnapSPC7110Snap), version);
+	matches &= CompareStruct(stream1, stream2, "SRT", SnapSRTCSnap, COUNT(SnapSRTCSnap), version);
+	matches &= CompareBlock(stream1, stream2, "CLK", 20);
+	matches &= CompareStruct(stream1, stream2, "BSX", SnapBSX, COUNT(SnapBSX), version);
+	matches &= CompareStruct(stream1, stream2, "MSU", SnapMSU1, COUNT(SnapMSU1), version);
+	//matches &= CompareStruct(stream1, stream2, "SHO", SnapScreenshot, COUNT(SnapScreenshot), version);
+	//matches &= CompareStruct(stream1, stream2, "MOV", SnapMovie, COUNT(SnapMovie), version);
+	//matches &= CompareBlock(stream1, stream2, "MID", mi.MovieInputDataSize);
+	return matches;
+}
+
 static int FreezeSize (int size, int type)
 {
 	switch (type)
@@ -2269,3 +2332,125 @@ static void UnfreezeStructFromCopy (void *sbase, FreezeData *fields, int num_fie
 		}
 	}
 }
+
+static bool CompareMemBlock(const char *name, const uint8 *mem1, const uint8 *mem2, int size)
+{
+	bool matches = true;
+	const int allowedMatchingBytes = 4;
+	for (int i = 0; i < size; i++)
+	{
+		if (mem1[i] != mem2[i])
+		{
+			//found a non-match at i
+			if (matches)
+			{
+				matches = false;
+				if (name != NULL && *name != 0)
+				{
+					fprintf(stderr, "Block %s:\n", name);
+				}
+			}
+			int nonMatchingSize = 0;
+			int matchingBytes = 0;
+			int i2 = i;
+			for (i2 = i; i2 < size && matchingBytes < 4; i2++)
+			{
+				if (mem1[i2] == mem2[i2])
+				{
+					matchingBytes++;
+				}
+				else
+				{
+					matchingBytes = 0;
+				}
+			}
+			int displaySize = i2 - i - matchingBytes;
+			fprintf(stderr, "Address 0x%0X: ", i);
+			for (i2 = i; i2 < i + displaySize; i2++)
+			{
+				fprintf(stderr, "%02X ", mem1[i2]);
+			}
+			fprintf(stderr, "\n");
+			fprintf(stderr, "Address 0x%0X: ", i);
+			for (i2 = i; i2 < i + displaySize; i2++)
+			{
+				fprintf(stderr, "%02X ", mem2[i2]);
+			}
+			fprintf(stderr, "\n");
+			i += displaySize;
+			i--;
+		}
+	}
+	return matches;
+}
+
+static bool CompareStruct(STREAM stream1, STREAM stream2, const char *name, FreezeData *fields, int num_fields, int version)
+{
+	bool matches = true;
+	int	len = 0;
+
+	for (int i = 0; i < num_fields; i++)
+	{
+		if (version >= fields[i].debuted_in && version < fields[i].deleted_in)
+		{
+			len += FreezeSize(fields[i].size, fields[i].type);
+		}
+	}
+	uint8* block1 = NULL;
+	uint8* block2 = NULL;
+	UnfreezeBlockCopy(stream1, name, &block1, len);
+	UnfreezeBlockCopy(stream2, name, &block2, len);
+
+	if (block1 == NULL || block2 == NULL) return true;
+
+	int pos = 0;
+	for (int i = 0; i < num_fields; i++)
+	{
+		if (version >= fields[i].debuted_in && version < fields[i].deleted_in)
+		{
+			int size = FreezeSize(fields[i].size, fields[i].type);
+			if (0 != memcmp(&block1[pos], &block2[pos], size))
+			{
+				if (matches)
+				{
+					matches = false;
+					fprintf(stderr, "Struct %s:\n", name);
+				}
+				if (size <= 4)
+				{
+					int value1 = 0;
+					int value2 = 0;
+					memcpy((void*)&value1, &block1[pos], size);
+					memcpy((void*)&value2, &block2[pos], size);
+					fprintf(stderr, "%s: 0x%08X    0x%08X\n", fields[i].name, value1, value2);
+				}
+				else
+				{
+					CompareMemBlock(fields[i].name, &block1[pos], &block2[pos], size);
+				}
+			}
+			pos += size;
+		}
+	}
+	delete[](block1);
+	delete[](block2);
+	return matches;
+}
+
+static bool CompareBlock(STREAM stream1, STREAM stream2, const char *name, int blocksize)
+{
+	uint8* block1 = NULL;
+	uint8* block2 = NULL;
+	UnfreezeBlockCopy(stream1, name, &block1, blocksize);
+	UnfreezeBlockCopy(stream2, name, &block2, blocksize);
+
+	if (block1 == NULL || block2 == NULL)
+	{
+		return true;
+	}
+	bool result = CompareMemBlock(name, block1, block2, blocksize);
+	delete[](block1);
+	delete[](block2);
+	return result;
+}
+
