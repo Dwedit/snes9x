@@ -1826,6 +1826,7 @@ int S9xCompareStateStream(STREAM stream1, STREAM stream2)
 	len = strlen(SNAPSHOT_MAGIC) + 1 + 4 + 1;
 	READ_STREAM(buffer1, len, stream1);
 	READ_STREAM(buffer2, len, stream2);
+	version = atoi((const char*)&buffer1[strlen(SNAPSHOT_MAGIC) + 1]);
 	matches &= CompareMemBlock("Header", buffer1, buffer2, len);
 
 	matches &= CompareBlock(stream1, stream2, "NAM", PATH_MAX);
@@ -2401,7 +2402,10 @@ static bool CompareStruct(STREAM stream1, STREAM stream2, const char *name, Free
 	UnfreezeBlockCopy(stream1, name, &block1, len);
 	UnfreezeBlockCopy(stream2, name, &block2, len);
 
-	if (block1 == NULL || block2 == NULL) return true;
+	if (block1 == NULL || block2 == NULL)
+	{
+		return true;
+	}
 
 	int pos = 0;
 	for (int i = 0; i < num_fields; i++)
